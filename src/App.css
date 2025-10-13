@@ -253,3 +253,63 @@ select:hover {
     grid-template-columns: 1fr;
   }
 }
+
+/* Extra small devices (iPhone SE and similar) */
+@media (max-width: 375px) {
+  body {
+    padding: 8px;
+  }
+
+  .left-section {
+    width: 100%;
+    padding: 18px;
+    gap: 20px;
+  }
+
+  .weather-card {
+    width: 100%;
+    padding: 18px;
+  }
+
+  .temperature .temp {
+    font-size: 2rem;
+  }
+
+  .country {
+    font-size: 1.2rem;
+  }
+
+  .date {
+    font-size: 0.85rem;
+  }
+
+  select,
+  .city-input {
+    width: 100%;
+    font-size: 0.9rem;
+    padding: 10px 14px;
+  }
+
+  .right-section {
+    flex-direction: column;
+    gap: 15px;
+    align-items: center;
+  }
+
+  .right-section .weather-card {
+    width: 100%;
+  }
+
+  .bottom-section {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .info .label {
+    font-size: 0.75rem;
+  }
+
+  .info .value {
+    font-size: 1rem;
+  }
+}
