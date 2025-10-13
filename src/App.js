@@ -34,6 +34,7 @@ function App() {
       const res = await fetch(
         `https://api.openweathermap.org/data/2.5/weather?q=${cityName}&units=metric&appid=${API_KEY}`
       );
+      if (!res.ok) throw new Error("City not found");
       const data = await res.json();
       setWeatherData(data);
     } catch (err) {
@@ -49,6 +50,8 @@ function App() {
         `https://api.openweathermap.org/data/2.5/forecast?q=${cityName}&units=metric&appid=${API_KEY}`
       );
       const data = await res.json();
+      console.log("Forecast data:", data.list);
+
       const dailyForecast = data.list.filter((item) =>
         item.dt_txt.includes("12:00:00")
       );
@@ -152,7 +155,7 @@ function App() {
                   </div>
                 </>
               ) : (
-                <p>Loading weather data...</p>
+                <p>City not found</p>
               )}
             </div>
 
