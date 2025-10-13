@@ -72,86 +72,98 @@ function App() {
   }, [city]);
 
   return (
-    <div className="left-section">
-      <div className="App">
-        <div className="weather-layout">
-          <div className="weather-card">
-            <div className="top-section">
-              <div className="location">
-                <input
-                  className="city-input"
-                  type="text"
-                  placeholder="Enter your name"
-                  value={city} // bind state to input
-                  onChange={handleChange} // update state on change
-                />
+    <>
+      <div className="left-section">
+        <label for="city">Choose a city:</label>
+        <select id="city" value={city} onChange={handleChange}>
+          <option value="">--Select a city--</option>
+          <option value="Delhi">Delhi</option>
+          <option value="Mumbai">Mumbai</option>
+          <option value="Chandigarh">Chandigarh</option>
+          <option value="Amritsar">Amritsar</option>
+        </select>
+        <h3>OR</h3>
+        <input
+          className="city-input"
+          type="text"
+          placeholder="Enter your name"
+          value={city} // bind state to input
+          onChange={handleChange} // update state on change
+        />
+        <div className="App">
+          <div className="weather-layout">
+            <div className="weather-card">
+              <div className="top-section">
+                <div className="location"></div>
+                {weatherdata && (
+                  <h1 className="country">
+                    {weatherdata.name}, {weatherdata.sys.country}
+                  </h1>
+                )}
+
+                {weatherdata && (
+                  <div className="date">
+                    {new Date(weatherdata.dt * 1000).toLocaleDateString(
+                      "en-US",
+                      {
+                        weekday: "short", // e.g., Tue
+                        month: "short", // e.g., Aug
+                        day: "numeric", // e.g., 23
+                      }
+                    )}
+                  </div>
+                )}
+                {weatherdata ? (
+                  <div className="temperature">
+                    <span className="icon">🌡️</span>
+                    <span className="temp">{weatherdata.main.temp}°C</span>
+                    <span className="weather-icon">
+                      {weatherdata.weather[0].main === "Clear"
+                        ? "☀️"
+                        : weatherdata.weather[0].main === "Clouds"
+                        ? "☁️"
+                        : weatherdata.weather[0].main === "Rain"
+                        ? "🌧️"
+                        : "🌤️"}
+                    </span>
+                  </div>
+                ) : (
+                  <p>Loading weather data...</p>
+                )}
               </div>
-              {weatherdata && (
-                <h1 className="country">
-                  {weatherdata.name}, {weatherdata.sys.country}
-                </h1>
-              )}
 
               {weatherdata && (
-                <div className="date">
-                  {new Date(weatherdata.dt * 1000).toLocaleDateString("en-US", {
-                    weekday: "short", // e.g., Tue
-                    month: "short", // e.g., Aug
-                    day: "numeric", // e.g., 23
-                  })}
+                <div className="bottom-section">
+                  <div className="info">
+                    <p className="label">HUMIDITY</p>
+                    <p className="value">{weatherdata.main.humidity}%</p>
+                  </div>
+                  <div className="info">
+                    <p className="label">VISIBILITY</p>
+                    <p className="value">
+                      {(weatherdata.visibility / 1000).toFixed(1)} km
+                    </p>
+                  </div>
+                  <div className="info">
+                    <p className="label">AIR PRESSURE</p>
+                    <p className="value">{weatherdata.main.pressure} hPa</p>
+                  </div>
+                  <div className="info">
+                    <p className="label">WIND</p>
+                    <p className="value">{weatherdata.wind.speed} m/s</p>
+                  </div>
                 </div>
-              )}
-              {weatherdata ? (
-                <div className="temperature">
-                  <span className="icon">🌡️</span>
-                  <span className="temp">{weatherdata.main.temp}°C</span>
-                  <span className="weather-icon">
-                    {weatherdata.weather[0].main === "Clear"
-                      ? "☀️"
-                      : weatherdata.weather[0].main === "Clouds"
-                      ? "☁️"
-                      : weatherdata.weather[0].main === "Rain"
-                      ? "🌧️"
-                      : "🌤️"}
-                  </span>
-                </div>
-              ) : (
-                <p>Loading weather data...</p>
               )}
             </div>
-
-            {weatherdata && (
-              <div className="bottom-section">
-                <div className="info">
-                  <p className="label">HUMIDITY</p>
-                  <p className="value">{weatherdata.main.humidity}%</p>
-                </div>
-                <div className="info">
-                  <p className="label">VISIBILITY</p>
-                  <p className="value">
-                    {(weatherdata.visibility / 1000).toFixed(1)} km
-                  </p>
-                </div>
-                <div className="info">
-                  <p className="label">AIR PRESSURE</p>
-                  <p className="value">{weatherdata.main.pressure} hPa</p>
-                </div>
-                <div className="info">
-                  <p className="label">WIND</p>
-                  <p className="value">{weatherdata.wind.speed} m/s</p>
-                </div>
-              </div>
-            )}
-          </div>
-          <div className="right-section">
-            {forcastdata && <Forecastcomp forcastdata={forcastdata[0]} />}
-            {forcastdata && <Forecastcomp forcastdata={forcastdata[1]} />}
-            {forcastdata && <Forecastcomp forcastdata={forcastdata[2]} />}
-            {forcastdata && <Forecastcomp forcastdata={forcastdata[3]} />}
+            <div className="right-section">
+              {forcastdata && <Forecastcomp forcastdata={forcastdata[0]} />}
+              {forcastdata && <Forecastcomp forcastdata={forcastdata[1]} />}
+              {forcastdata && <Forecastcomp forcastdata={forcastdata[2]} />}
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
