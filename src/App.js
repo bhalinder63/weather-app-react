@@ -78,11 +78,13 @@ function App() {
         <select id="city" value={city} onChange={handleChange}>
           <option value="">--Select a city--</option>
           <option value="Delhi">Delhi</option>
-          <option value="Mumbai">Mumbai</option>
-          <option value="Chandigarh">Chandigarh</option>
-          <option value="Amritsar">Amritsar</option>
+          <option value="Winnipeg">Winnipeg</option>
+          <option value="New York">New York</option>
+          <option value="Vancouver">Vancouver</option>
+          <option value="Scranton">Scranton</option>
         </select>
         <h3>OR</h3>
+        <label for="city">Search a city:</label>
         <input
           className="city-input"
           type="text"
