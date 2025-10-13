@@ -79,3 +79,25 @@ body {
   font-weight: 500;
   margin-top: 5px;
 }
+
+.weather-layout {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 40px;
+  height: 100vh;
+  padding: 40px;
+}
+
+.left-section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.right-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  align-items: center;
+}
