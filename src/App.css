@@ -31,6 +31,25 @@ body {
   border-radius: 20px;
   box-shadow: 0 0 20px rgba(160, 32, 240, 0.3);
   backdrop-filter: blur(6px);
+  width: 100%;
+  max-width: 1200px;
+}
+
+.city-selection {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 20px;
+  justify-content: center;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.city-selection > div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
 }
 
 label {
@@ -312,4 +331,35 @@ select:hover {
   .info .value {
     font-size: 1rem;
   }
+}
+
+/* Loading and Error States */
+.loading {
+  text-align: center;
+  padding: 40px;
+  font-size: 1.2rem;
+  color: #d3b8ff;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.error-message {
+  background: rgba(255, 82, 82, 0.2);
+  border: 1px solid rgba(255, 82, 82, 0.5);
+  border-radius: 15px;
+  padding: 20px;
+  margin: 20px 0;
+  color: #ffb3b3;
+  text-align: center;
+  font-size: 1rem;
+  box-shadow: 0 4px 15px rgba(255, 82, 82, 0.2);
 }

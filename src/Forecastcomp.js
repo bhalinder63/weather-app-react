@@ -1,4 +1,4 @@
-function Forecastcomp({ forcastdata }) {
+function Forecastcomp({ forcastdata, timezoneOffset = 0 }) {
   return (
     <div className="weather-card">
       <div className="top-section">
@@ -6,17 +6,27 @@ function Forecastcomp({ forcastdata }) {
           <>
             {/* Date Section */}
             <div className="date">
-              {new Date(forcastdata.dt * 1000).toLocaleDateString("en-US", {
-                weekday: "short", // e.g., Tue
-                month: "short", // e.g., Aug
-                day: "numeric", // e.g., 23
-              })}
+              {(() => {
+                // Convert UTC timestamp to city's local time
+                const utcDate = new Date(forcastdata.dt * 1000);
+                const cityTime = new Date(
+                  utcDate.getTime() + timezoneOffset * 1000
+                );
+                return cityTime.toLocaleDateString("en-US", {
+                  timeZone: "UTC", // Use UTC since we already adjusted the time
+                  weekday: "short",
+                  month: "short",
+                  day: "numeric",
+                });
+              })()}
             </div>
 
             {/* Temperature & Icon Section */}
             <div className="temperature">
               <span className="icon">🌡️</span>
-              <span className="temp">{forcastdata.main.temp}°C</span>
+              <span className="temp">
+                {Math.round(forcastdata.main.temp)}°C
+              </span>
               <span className="weather-icon">
                 {forcastdata.weather[0].main === "Clear"
                   ? "☀️"
