@@ -1,45 +1,29 @@
-function Forecastcomp({ forcastdata, timezoneOffset = 0 }) {
-  return (
-    <div className="weather-card">
-      <div className="top-section">
-        {forcastdata && (
-          <>
-            {/* Date Section */}
-            <div className="date">
-              {(() => {
-                // Convert UTC timestamp to city's local time
-                const utcDate = new Date(forcastdata.dt * 1000);
-                const cityTime = new Date(
-                  utcDate.getTime() + timezoneOffset * 1000
-                );
-                return cityTime.toLocaleDateString("en-US", {
-                  timeZone: "UTC", // Use UTC since we already adjusted the time
-                  weekday: "short",
-                  month: "short",
-                  day: "numeric",
-                });
-              })()}
-            </div>
+function Forecastcomp({ forecastData, timezoneOffset = 0 }) {
+  if (!forecastData) return null;
 
-            {/* Temperature & Icon Section */}
-            <div className="temperature">
-              <span className="icon">🌡️</span>
-              <span className="temp">
-                {Math.round(forcastdata.main.temp)}°C
-              </span>
-              <span className="weather-icon">
-                {forcastdata.weather[0].main === "Clear"
-                  ? "☀️"
-                  : forcastdata.weather[0].main === "Clouds"
-                  ? "☁️"
-                  : forcastdata.weather[0].main === "Rain"
-                  ? "🌧️"
-                  : "🌤️"}
-              </span>
-            </div>
-          </>
-        )}
+  const cityTime = new Date(forecastData.dt * 1000 + timezoneOffset * 1000);
+  const dateStr = cityTime.toLocaleDateString("en-US", {
+    timeZone: "UTC",
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+
+  return (
+    <div className="weather-card forecast-card">
+      <div className="forecast-date">{dateStr}</div>
+      <div className="forecast-main">
+        <img
+          className="forecast-icon"
+          src={`https://openweathermap.org/img/wn/${forecastData.weather[0].icon}@2x.png`}
+          alt={forecastData.weather[0].description}
+        />
+        <span className="forecast-temp">{Math.round(forecastData.main.temp)}°C</span>
       </div>
+      <p className="forecast-desc">{forecastData.weather[0].description}</p>
+      <p className="forecast-range">
+        H: {Math.round(forecastData.main.temp_max)}° &nbsp; L: {Math.round(forecastData.main.temp_min)}°
+      </p>
     </div>
   );
 }

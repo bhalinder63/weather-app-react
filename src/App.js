@@ -1,6 +1,9 @@
 import "./App.css";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Forecastcomp from "./Forecastcomp";
+
+const API_KEY = "33dab0eb21c5a06ba4c94c014c370262";
+const BASE_URL = "https://api.openweathermap.org/data/2.5";
 
 function App() {
   const [city, setCity] = useState("Abohar");
@@ -9,146 +12,111 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [timezoneOffset, setTimezoneOffset] = useState(0);
+  const userChangedCity = useRef(false);
 
-  const API_KEY = "33dab0eb21c5a06ba4c94c014c370262";
+  const formatLocalDate = (dt, offset) => {
+    const cityTime = new Date(dt * 1000 + offset * 1000);
+    return cityTime.toLocaleDateString("en-US", {
+      timeZone: "UTC",
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+    });
+  };
 
-  // Handle city input change
   const handleChange = (event) => {
+    userChangedCity.current = true;
     setCity(event.target.value);
   };
 
-  // Fetch current weather by coordinates
-  const getWeatherByCoords = async (lat, lon) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const res = await fetch(
-        `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`
-      );
-      if (!res.ok) throw new Error("Unable to fetch weather data");
-      const data = await res.json();
-
-      // Store timezone offset from weather data
-      if (data.timezone) {
-        setTimezoneOffset(data.timezone);
-      }
-
-      setWeatherData(data);
-      setCity(data.name);
-
-      // Also fetch forecast for this location
-      await getForecastByCity(data.name);
-      setLoading(false);
-    } catch (err) {
-      console.error("Error fetching weather by coordinates:", err);
-      setError("Unable to fetch weather data");
-      setLoading(false);
-    }
-  };
-
-  // Fetch current weather by city
-  const getWeatherByCity = async (cityName) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const res = await fetch(
-        `https://api.openweathermap.org/data/2.5/weather?q=${cityName}&units=metric&appid=${API_KEY}`
-      );
-      if (!res.ok) throw new Error("City not found");
-      const data = await res.json();
-
-      // Check if response is valid
-      if (!data.main || !data.weather) {
-        throw new Error("Invalid weather data received");
-      }
-
-      // Store timezone offset from weather data
-      if (data.timezone) {
-        setTimezoneOffset(data.timezone);
-        console.log("timezone offset", data.timezone);
-      }
-
-      setWeatherData(data);
-      setLoading(false);
-    } catch (err) {
-      console.error("Error fetching weather:", err);
-      setError(err.message || "City not found. Please try another city.");
-      setWeatherData(null);
-      setLoading(false);
-    }
-  };
-
-  // Fetch forecast by city
-  const getForecastByCity = async (cityName) => {
-    try {
-      const res = await fetch(
-        `https://api.openweathermap.org/data/2.5/forecast?q=${cityName}&units=metric&appid=${API_KEY}`
-      );
-      if (!res.ok) throw new Error("Unable to fetch forecast");
-      const data = await res.json();
-
-      // Check if response is valid
-      if (!data.list || data.list.length === 0) {
-        throw new Error("No forecast data available");
-      }
-
-      // Get daily forecast at 12:00 PM
-      const dailyForecast = data.list.filter((item) =>
-        item.dt_txt.includes("12:00:00")
-      );
-
-      setForecastData(dailyForecast);
-    } catch (err) {
-      console.error("Error fetching forecast:", err);
+  const applyWeatherData = (data, fData) => {
+    if (data.timezone) setTimezoneOffset(data.timezone);
+    setWeatherData(data);
+    if (fData?.list?.length > 0) {
+      setForecastData(fData.list.filter((item) => item.dt_txt.includes("12:00:00")));
+    } else {
       setForecastData([]);
     }
   };
 
-  // Get user location on initial load
+  const getWeatherByCoords = async (lat, lon) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const [wRes, fRes] = await Promise.all([
+        fetch(`${BASE_URL}/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`),
+        fetch(`${BASE_URL}/forecast?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`),
+      ]);
+      if (!wRes.ok) throw new Error("Unable to fetch weather data");
+      const [data, fData] = await Promise.all([wRes.json(), fRes.json()]);
+      applyWeatherData(data, fData);
+      setCity(data.name); // internal update — does not trigger debounce (userChangedCity stays false)
+    } catch (err) {
+      setError("Unable to fetch weather data");
+      setWeatherData(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getWeatherByCity = async (cityName) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const [wRes, fRes] = await Promise.all([
+        fetch(`${BASE_URL}/weather?q=${cityName}&units=metric&appid=${API_KEY}`),
+        fetch(`${BASE_URL}/forecast?q=${cityName}&units=metric&appid=${API_KEY}`),
+      ]);
+      if (!wRes.ok) throw new Error("City not found");
+      const data = await wRes.json();
+      if (!data.main || !data.weather) throw new Error("Invalid weather data received");
+      const fData = fRes.ok ? await fRes.json() : null;
+      applyWeatherData(data, fData);
+    } catch (err) {
+      setError(err.message || "City not found. Please try another city.");
+      setWeatherData(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initial load: use geolocation, fall back to default city
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
+        ({ coords: { latitude, longitude } }) => {
           getWeatherByCoords(latitude, longitude);
         },
-        (error) => {
-          console.error("Error getting location:", error);
-          // Fallback to default city
+        () => {
           getWeatherByCity("Abohar");
-          getForecastByCity("Abohar");
         }
       );
     } else {
-      console.log("Geolocation not supported");
-      // Fallback to default city
       getWeatherByCity("Abohar");
-      getForecastByCity("Abohar");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Fetch weather & forecast when city changes (with debounce)
+  // Debounced fetch — only fires when the user changed the city input
   useEffect(() => {
-    if (!city) return;
+    if (!city || !userChangedCity.current) return;
+    userChangedCity.current = false;
 
-    const debounceTimeout = setTimeout(() => {
+    const timeout = setTimeout(() => {
       getWeatherByCity(city);
-      getForecastByCity(city);
     }, 500);
 
-    return () => clearTimeout(debounceTimeout);
+    return () => clearTimeout(timeout);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [city]);
 
   return (
-    <div className="left-section">
-      {/* City Selection */}
+    <div className="app-wrapper">
       <div className="city-selection">
-        <div>
-          <label htmlFor="city">Choose a city:</label>
+        <div className="input-group">
+          <label htmlFor="city">Choose a city</label>
           <select id="city" value={city} onChange={handleChange}>
-            <option value="">--Select a city--</option>
+            <option value="">-- Select --</option>
             <option value="Delhi">Delhi</option>
             <option value="Winnipeg">Winnipeg</option>
             <option value="New York">New York</option>
@@ -157,120 +125,86 @@ function App() {
           </select>
         </div>
 
-        <h3>OR</h3>
+        <span className="divider">or</span>
 
-        <div>
-          <label htmlFor="city-search">Search a city:</label>
+        <div className="input-group">
+          <label htmlFor="city-search">Search a city</label>
           <input
             id="city-search"
             className="city-input"
             type="text"
-            placeholder="Enter your city"
+            placeholder="Enter city name..."
             value={city}
             onChange={handleChange}
           />
         </div>
       </div>
 
-      {/* Weather Layout */}
-      <div className="App">
-        {loading && <div className="loading">Loading weather data...</div>}
+      {loading && <div className="loading">Loading weather data...</div>}
+      {error && <div className="error-message">{error}</div>}
 
-        {error && <div className="error-message">{error}</div>}
-
-        {!loading && !error && (
-          <div className="weather-layout">
-            {/* Current Weather Card */}
-            <div className="weather-card">
+      {!loading && !error && (
+        <div className="weather-layout">
+          {weatherData && (
+            <div className="weather-card main-card">
               <div className="top-section">
-                {weatherData ? (
-                  <>
-                    <h1 className="country">
-                      {weatherData.name}, {weatherData.sys.country}
-                    </h1>
-                    <div className="date">
-                      {(() => {
-                        // Convert UTC timestamp to city's local time
-                        const utcDate = new Date(weatherData.dt * 1000);
-                        const cityTime = new Date(
-                          utcDate.getTime() + timezoneOffset * 1000
-                        );
-                        return cityTime.toLocaleDateString("en-US", {
-                          timeZone: "UTC", // Use UTC since we already adjusted the time
-                          weekday: "short",
-                          month: "short",
-                          day: "numeric",
-                        });
-                      })()}
-                    </div>
-                    <div className="temperature">
-                      <span className="icon">🌡️</span>
-                      <span className="temp">
-                        {Math.round(weatherData.main.temp)}°C
-                      </span>
-                      <span className="weather-icon">
-                        {weatherData.weather[0].main === "Clear"
-                          ? "☀️"
-                          : weatherData.weather[0].main === "Clouds"
-                          ? "☁️"
-                          : weatherData.weather[0].main === "Rain"
-                          ? "🌧️"
-                          : "🌤️"}
-                      </span>
-                    </div>
-                  </>
-                ) : (
-                  <p>No weather data available</p>
-                )}
+                <h1 className="country">
+                  {weatherData.name}, {weatherData.sys.country}
+                </h1>
+                <div className="date">{formatLocalDate(weatherData.dt, timezoneOffset)}</div>
+                <div className="weather-main">
+                  <img
+                    className="weather-icon-img"
+                    src={`https://openweathermap.org/img/wn/${weatherData.weather[0].icon}@2x.png`}
+                    alt={weatherData.weather[0].description}
+                  />
+                  <span className="temp">{Math.round(weatherData.main.temp)}°C</span>
+                </div>
+                <p className="description">{weatherData.weather[0].description}</p>
+                <p className="feels-like">
+                  Feels like {Math.round(weatherData.main.feels_like)}°C &nbsp;·&nbsp;
+                  H: {Math.round(weatherData.main.temp_max)}° L: {Math.round(weatherData.main.temp_min)}°
+                </p>
               </div>
-
-              {weatherData && (
-                <div className="bottom-section">
-                  <div className="info">
-                    <p className="label">HUMIDITY</p>
-                    <p className="value">{weatherData.main.humidity}%</p>
-                  </div>
-                  <div className="info">
-                    <p className="label">VISIBILITY</p>
-                    <p className="value">
-                      {(weatherData.visibility / 1000).toFixed(1)} km
-                    </p>
-                  </div>
-                  <div className="info">
-                    <p className="label">AIR PRESSURE</p>
-                    <p className="value">{weatherData.main.pressure} hPa</p>
-                  </div>
-                  <div className="info">
-                    <p className="label">WIND</p>
-                    <p className="value">{weatherData.wind.speed} m/s</p>
-                  </div>
+              <div className="bottom-section">
+                <div className="info">
+                  <p className="label">HUMIDITY</p>
+                  <p className="value">{weatherData.main.humidity}%</p>
                 </div>
-              )}
-            </div>
-
-            {/* Forecast Section */}
-            <div className="right-section">
-              {forecastData.length > 0 ? (
-                forecastData
-                  .slice(0, 3)
-                  .map((forecast, index) => (
-                    <Forecastcomp
-                      key={index}
-                      forcastdata={forecast}
-                      timezoneOffset={timezoneOffset}
-                    />
-                  ))
-              ) : (
-                <div className="weather-card">
-                  <div className="top-section">
-                    <p>No forecast data available</p>
-                  </div>
+                <div className="info">
+                  <p className="label">VISIBILITY</p>
+                  <p className="value">{(weatherData.visibility / 1000).toFixed(1)} km</p>
                 </div>
-              )}
+                <div className="info">
+                  <p className="label">PRESSURE</p>
+                  <p className="value">{weatherData.main.pressure} hPa</p>
+                </div>
+                <div className="info">
+                  <p className="label">WIND</p>
+                  <p className="value">{weatherData.wind.speed} m/s</p>
+                </div>
+              </div>
             </div>
+          )}
+
+          <div className="right-section">
+            <h3 className="forecast-title">3-Day Forecast</h3>
+            {forecastData.length > 0 ? (
+              forecastData
+                .slice(0, 3)
+                .map((forecast, index) => (
+                  <Forecastcomp
+                    key={index}
+                    forecastData={forecast}
+                    timezoneOffset={timezoneOffset}
+                  />
+                ))
+            ) : (
+              <p className="no-forecast">No forecast available</p>
+            )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
